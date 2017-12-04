@@ -44,7 +44,7 @@ module Oumancli
             "address"  => "ouman.subdomain.domain",
             "username" => "username",
             "password" => "password",
-            "lang"     => "fi",
+            "lang"     => "en",
           }
           File.write(file + "_example", exampleconf.to_pretty_json)
         end
