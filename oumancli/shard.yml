@@ -1,0 +1,13 @@
+name: oumancli
+version: 0.1.0
+
+authors:
+  -  <>
+
+targets:
+  oumancli:
+    main: src/oumancli.cr
+
+crystal: 0.21.1
+
+license: GPL3
