@@ -44,7 +44,7 @@ module Oumancli
             "address"  => "ouman.subdomain.domain",
             "username" => "username",
             "password" => "password",
-            "lang"     => "en",
+            "lang"     => "fi",
           }
           File.write(file + "_example", exampleconf.to_pretty_json)
         end
@@ -123,6 +123,10 @@ module Oumancli
         end
       end
       arr.each do |k, v|
+        
+        if v.is_a?(Float32)
+          v=sprintf("%.1f",v)
+        end
         puts k.rjust(len) + " : " + v.to_s
       end
     end
@@ -151,10 +155,12 @@ module Oumancli
 
     def print_summary
       data = getAll()
-      puts @oumanAddr + "  " + Time.now.to_s("%Y-%m-%d %H:%M:%S%z") + "   " +
-           TERMS[@lang]["outside"] + ": " + data["S_227_85"].to_s + "   " +
-           TERMS[@lang]["inside"] + ": " + data["S_261_85"].to_s + " (" +
-           TERMS[@lang]["setTemp"] + ": " + data["S_278_85"].to_s + ")"
+      printf("%s  %s   %s: %.1f   %s: %.1f   (%s: %.1f)\n",
+      @oumanAddr, Time.now.to_s("%Y-%m-%d %H:%M:%S%z"),
+      TERMS[@lang]["outside"], data["S_227_85"],
+      TERMS[@lang]["inside"], data["S_261_85"],
+      TERMS[@lang]["setTemp"], data["S_278_85"])
+
     end
 
     def parseArgs
