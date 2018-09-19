@@ -58,19 +58,20 @@ module Oumancli
     "noserver"      => "Säätimeen ei saa yhteyttä",
     "badlogin"      => "Väärä käyttäjätunnus tai salasana",
     "badtemp"       => "Lämpötilan pitää olla 10.0 - 29.9",
-    "usage"         => <<-EOF
-                        ouman
 
-                        Komennot:
-                            set 21.0    aseta lämpötila
-                            json        tulosta JSONina
-                            full        tulosta selkokielisenä
-                            local-json  tulosta JSON selkokielisenä
-                            codemap     näytä koodien selitykset
-                            version     näytä versio
-                        EOF,
-    "badconfig"     => "Virheelliset asetukset",
-  }
+    "usage" => <<-EOF,
+                ouman
+
+                Komennot:
+                    set 21.0    aseta lämpötila
+                    json        tulosta JSONina
+                    full        tulosta selkokielisenä
+                    local-json  tulosta JSON selkokielisenä
+                    codemap     näytä koodien selitykset
+                    version     näytä versio
+                EOF
+    "badconfig" => "Virheelliset asetukset",
+    }
   TERMS["en"] = {
     "outside"       => "Outside",
     "inside"        => "Inside",
@@ -81,18 +82,18 @@ module Oumancli
     "exampleConfAt" => "An example configuration file at ",
     "noserver"      => "Can't connect to the controller",
     "badlogin"      => "Bad username or password",
+    "badconfig"     => "Bad configuration",
     "badtemp"       => "Temperature must be between 10.0 - 29.9",
     "usage"         => <<-EOF
-                        ouman
+              ouman
 
-                        Commands:
-                            set 21.0    set the temperature
-                            json        print JSON
-                            full        print human-readable data 
-                            local-json  print JSON with human-readable data
-                            codemap     show code meanings
-                            version     print version
-                        EOF,
-    "badconfig"     => "Bad configuration",
+              Commands:
+                  set 21.0    set the temperature
+                  json        print JSON
+                  full        print human-readable data
+                  local-json  print JSON with human-readable data
+                  codemap     show code meanings
+                  version     print version
+              EOF
   }
 end
