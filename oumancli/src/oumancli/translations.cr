@@ -71,7 +71,7 @@ module Oumancli
                     version     näytä versio
                 EOF
     "badconfig" => "Virheelliset asetukset",
-    }
+  }
   TERMS["en"] = {
     "outside"       => "Outside",
     "inside"        => "Inside",
@@ -85,15 +85,15 @@ module Oumancli
     "badconfig"     => "Bad configuration",
     "badtemp"       => "Temperature must be between 10.0 - 29.9",
     "usage"         => <<-EOF
-              ouman
+      ouman
 
-              Commands:
-                  set 21.0    set the temperature
-                  json        print JSON
-                  full        print human-readable data
-                  local-json  print JSON with human-readable data
-                  codemap     show code meanings
-                  version     print version
-              EOF
+      Commands:
+  set 21.0    set the temperature
+  json        print JSON
+  full        print human-readable data
+  local-json  print JSON with human-readable data
+  codemap     show code meanings
+  version     print version
+      EOF
   }
 end

@@ -2,6 +2,8 @@ require "./oumancli/*"
 require "http/client"
 require "json"
 
+# require "colorize"
+
 module Oumancli
   class Ouman
     @lang = "en"
@@ -154,11 +156,16 @@ module Oumancli
 
     def print_summary
       data = getAll()
-      printf("%s  %s   %s: %.1f   %s: %.1f   (%s: %.1f)\n",
+      s = sprintf("%s  %s   %s: %.1f   %s: %.1f   (%s: %.1f",
         @oumanAddr, Time.now.to_s("%Y-%m-%d %H:%M:%S%z"),
         TERMS[@lang]["outside"], data["S_227_85"],
         TERMS[@lang]["inside"], data["S_261_85"],
-        TERMS[@lang]["setTemp"], data["S_278_85"])
+        TERMS[@lang]["setTemp"], data["S_81_85"])
+      if data["S_265_85"] != 0
+        s += sprintf(" + %.1f", data["S_265_85"])
+      end
+      s += ")\n"
+      puts s
     end
 
     def parseArgs
@@ -290,3 +297,4 @@ module Oumancli
   ouman = Ouman.new(ENV["HOME"] + "/.oumanrc")
   ouman.parseArgs
 end
+
