@@ -1,8 +1,7 @@
 require "./oumancli/*"
 require "http/client"
 require "json"
-
-# require "colorize"
+require "colorize"
 
 module Oumancli
   class Ouman
@@ -156,10 +155,37 @@ module Oumancli
 
     def print_summary
       data = getAll()
-      s = sprintf("%s  %s   %s: %.1f   %s: %.1f   (%s: %.1f",
+
+      t = data["S_227_85"].to_f32
+      if t <= -15.0
+        t_out = sprintf("%.1f", t).colorize.fore(:light_cyan).mode(:bold)
+      elsif t < 0
+        t_out = sprintf("%.1f", t).colorize.fore(:light_cyan)
+      elsif t >= 15
+        t_out = sprintf("%.1f", t).colorize.fore(:yellow)
+      elsif t >= 25
+        t_out = sprintf("%.1f", t).colorize.fore(:red).mode(:bold)
+      else
+        t_out = sprintf("%.1f", t)
+      end
+
+      t = data["S_261_85"].to_f32
+      if t <= 10.0
+        t_in = sprintf("%.1f", t).colorize.fore(:light_cyan).mode(:bold)
+      elsif t < 10
+        t_in = sprintf("%.1f", t).colorize.fore(:light_cyan)
+      elsif t >= 23
+        t_in = sprintf("%.1f", t).colorize.fore(:light_yellow)
+      elsif t >= 28
+        t_in = sprintf("%.1f", t).colorize.fore(:red).mode(:bold)
+      else
+        t_in = sprintf("%.1f", t)
+      end
+
+      s = sprintf("%s  %s   %s: %s   %s: %s   (%s: %.1f",
         @oumanAddr, Time.now.to_s("%Y-%m-%d %H:%M:%S%z"),
-        TERMS[@lang]["outside"], data["S_227_85"],
-        TERMS[@lang]["inside"], data["S_261_85"],
+        TERMS[@lang]["outside"], t_out,
+        TERMS[@lang]["inside"], t_in,
         TERMS[@lang]["setTemp"], data["S_81_85"])
       if data["S_265_85"] != 0
         s += sprintf(" + %.1f", data["S_265_85"])
@@ -175,8 +201,8 @@ module Oumancli
       end
       case ARGV[0]
       when "set"
-        if (ARGV[1]?) && (ARGV[1] =~ /^[1-2]\d(\.\d)?$/)
-          setTemp(ARGV[1])
+        if (ARGV[1]?) && (t = ARGV[1].to_f32?)
+          setTemp(t)
           exit 0
         else
           STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badtemp"]
@@ -235,13 +261,16 @@ module Oumancli
 
     def setTemp(temp)
       time = Time.utc_now
-      temp = temp.to_f.to_s
-
+      if temp < 10 || temp >= 30
+        STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badtemp"]
+        exit 1
+      end
+      t_str = sprintf("%.1f",temp) # floats and locales
       begin
         login
         client = HTTP::Client.new(@oumanAddr, @oumanPort)
         client.read_timeout = 5
-        response = client.get("/update?@_S_81_85=" + temp + ";" + time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
+        response = client.get("/update?@_S_81_85=" + t_str + ";" + time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
       rescue Socket::Error
         STDERR.puts TERMS[@lang]["noserver"] + "\n" + @oumanAddr
         exit 1
@@ -258,17 +287,17 @@ module Oumancli
       /result\?([^\x00]*);/.match(response.body.lines[0])
 
       res = {} of String => String
-      res["timestamp"] = time.to_s("%Y-%m-%d/%H:%M:%S%z")
+      res["timestamp"] = time.to_s("%Y-%m-%d %H:%M:%S%z")
 
       $1.split(";").each do |i|
         k, v = i.split("=")
         res[k] = v
       end
-      if res["S_81_85"] != temp
-        STDERR.puts TERMS[@lang]["error"]
+      if !res["S_81_85"].to_f32? || res["S_81_85"].to_f32 != temp
+        STDERR.puts TERMS[@lang]["err_tempchg"] + " " + res["S_81_85"]
         exit 1
       end
-      puts res["timestamp"] + "  OK: " + temp
+      puts res["timestamp"] + "  OK: " + t_str
       return res
     end
 
@@ -293,6 +322,7 @@ module Oumancli
     end
   end
 
+  Colorize.enabled = false unless STDOUT.tty?
   STDIN.blocking = true if STDIN.class != IO
   ouman = Ouman.new(ENV["HOME"] + "/.oumanrc")
   ouman.parseArgs

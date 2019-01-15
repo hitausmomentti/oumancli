@@ -53,6 +53,7 @@ module Oumancli
     "setTemp"       => "Pyyntö",
     "badReply"      => "Lämmönsäädin vastasi kummallisella tavalla",
     "error"         => "Virhe",
+    "err_tempchg"   => "Virhe. Lämpöasetuksen vahvistus epäonnistui",
     "noConf"        => "Ei asetustiedostoa",
     "exampleConfAt" => "Esimerkkiasetustiedosto ",
     "noserver"      => "Säätimeen ei saa yhteyttä",
@@ -78,6 +79,7 @@ module Oumancli
     "setTemp"       => "Set to",
     "badReply"      => "The controller replied in an odd fashion",
     "error"         => "Error",
+    "err_tempchg"   => "Error. Temperature change unconfirmed",
     "noConf"        => "No config file",
     "exampleConfAt" => "An example configuration file at ",
     "noserver"      => "Can't connect to the controller",
@@ -88,12 +90,12 @@ module Oumancli
       ouman
 
       Commands:
-  set 21.0    set the temperature
-  json        print JSON
-  full        print human-readable data
-  local-json  print JSON with human-readable data
-  codemap     show code meanings
-  version     print version
+       set 21.0    set the temperature
+       json        print JSON
+       full        print human-readable data
+       local-json  print JSON with human-readable data
+       codemap     show code meanings
+       version     print version
       EOF
   }
 end
