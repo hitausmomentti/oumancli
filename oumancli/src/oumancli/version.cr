@@ -1,3 +1,3 @@
 module Oumancli
-  VERSION = "0.18.12.19"
+  VERSION = "0.19.08.21"
 end

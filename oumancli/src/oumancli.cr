@@ -73,7 +73,10 @@ module Oumancli
         puts response
         exit 1
       end
-      if (response.body.lines.size > 1) | (response.status_code != 200)
+      if response.is_a?(Nil)
+        exit 1
+      end
+      if (response.body.lines.size > 1) || (response.status_code != 200)
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         exit 1
       end
@@ -239,7 +242,10 @@ module Oumancli
         STDERR.puts response
         exit 1
       end
-      if (response.body.lines.size > 1) | (response.status_code != 200)
+      if response.is_a?(Nil)
+        exit 1
+      end
+      if (response.body.lines.size > 1) || (response.status_code != 200)
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         exit 1
       end
@@ -280,7 +286,10 @@ module Oumancli
         STDERR.puts response
         exit 1
       end
-      if (response.body.lines.size > 1) | (response.status_code != 200)
+      if response.is_a?(Nil)
+        exit 1
+      end
+      if (response.body.lines.size > 1) || (response.status_code != 200)
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         exit 1
       end
@@ -312,7 +321,7 @@ module Oumancli
         puts response
         exit 1
       end
-      if response.status_code != 200
+      if response.is_a?(Nil) || response.status_code != 200 
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         exit 1
       end
