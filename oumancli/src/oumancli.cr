@@ -4,6 +4,8 @@ require "json"
 require "colorize"
 
 module Oumancli
+
+
   class Ouman
     @lang = "en"
     @oumanAddr = ""
@@ -52,47 +54,73 @@ module Oumancli
         puts TERMS[@lang]["noConf"] + "\n" + TERMS[@lang]["exampleConfAt"] + " " + file + "_example"
         exit 1
       end
+      @oumanhttp = HTTP::Client.new(@oumanAddr, @oumanPort)
+      @oumanhttp.read_timeout = 2
+      @time = Time.utc
     end
 
-    def getAll
-      oumanGetAll = "/request?S_227_85;S_135_85;S_1000_0;S_261_85;S_278_85;S_259_85;S_275_85;S_102_85;S_284_85;S_274_85;S_272_85;S_26_85;S_81_85;S_87_85;S_88_85;S_54_85;S_55_85;S_61_85;S_63_85;S_65_85;S_260_85;S_263_85;S_264_85;S_262_85;S_92_85;S_59_85;S_258_85;S_265_85"
-
-      time = Time.utc_now
-
+    def operate(path : String, time = true)
       begin
-        client = HTTP::Client.new(@oumanAddr, @oumanPort)
-        client.read_timeout = 2
-        response = client.get(oumanGetAll + time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
+        if time
+          response = @oumanhttp.get(path + @time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
+        else
+          response = @oumanhttp.get(path)
+        end
       rescue pex : Socket::Error
         STDERR.puts TERMS[@lang]["noserver"] + "\n" + @oumanAddr
         STDERR.puts pex
-        exit 1
+        return nil
       rescue ex
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         STDERR.puts ex
         puts response
-        exit 1
+        return nil
       end
       if response.is_a?(Nil)
-        exit 1
+        return nil
       end
       if (response.body.lines.size > 1) || (response.status_code != 200)
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
+        return nil
+      end
+      return response
+    end
+
+    def parseRspKV(kvpair : String)
+      k, v = kvpair.split("=")
+      case k
+      when "S_135_85"
+        v2 = HomeAway.new(v.to_i32) if v.to_i32?
+      when "S_59_85"  
+        v2 = CtlMode.new(v.to_i32) if v.to_i32?
+      else
+        if v.to_i32?
+          v2 = v.to_i32
+        elsif v.to_f32?
+          v2 = v.to_f32
+        end
+      end
+      
+      return k, v2 || v
+    end
+
+    def getAll
+      oumanGetAll = "/request?S_227_85;S_135_85;S_1000_0;S_261_85;S_278_85;S_259_85;S_275_85;S_102_85;S_284_85;S_274_85;S_272_85;S_26_85;S_81_85;S_87_85;S_88_85;S_54_85;S_55_85;S_61_85;S_63_85;S_65_85;S_260_85;S_263_85;S_264_85;S_262_85;S_92_85;S_59_85;S_258_85;S_265_85;"
+
+      response = operate(oumanGetAll)
+      if !response
         exit 1
       end
 
-      res = Hash(String, String | Float32 | Int32).new
-      res["timestamp"] = time.to_s("%Y-%m-%dT%H:%M:%S%z")
+      res = Hash(String, String | Float32 | Int32 | HomeAway | CtlMode).new
+      res["timestamp"] = @time.to_s("%Y-%m-%dT%H:%M:%S%z")
 
       begin
         /request\?([^\x00]*);/.match(response.body.lines[0])
 
         $1.split(";").each do |i|
-          k, v = i.split("=")
-          unless k == "S_135_85"
-            a = v.to_f32?
-          end
-          res[k] = a || v
+          k, v = parseRspKV(i)
+          res[k] = v
         end
       rescue ex
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
@@ -136,19 +164,13 @@ module Oumancli
 
     def codestowords
       h = getAll()
-      res = Hash(String, String | Float32 | Int32).new
+      res = Hash(String, String | Float32 | Int32 | HomeAway | CtlMode).new
       h.each do |k, v|
-        if VALUES[@lang][k]?
-          if VALUES[@lang][k][v]?
-            v = VALUES[@lang][k][v]
-          end
+        if VALUES[@lang][k]? && VALUES[@lang][k][v]?
+          v = VALUES[@lang][k][v]
         end
-        if CODES[@lang]?
-          if CODES[@lang][k]?
-            res[CODES[@lang][k]] = v
-          else
-            res[k] = v
-          end
+        if CODES[@lang]? && CODES[@lang][k]?
+          res[CODES[@lang][k]] = v
         else
           res[k] = v
         end
@@ -186,7 +208,7 @@ module Oumancli
       end
 
       s = sprintf("%s  %s   %s: %s   %s: %s   (%s: %.1f",
-        @oumanAddr, Time.now.to_s("%Y-%m-%d %H:%M:%S%z"),
+        @oumanAddr, Time.local.to_s("%Y-%m-%d %H:%M:%S%z"),
         TERMS[@lang]["outside"], t_out,
         TERMS[@lang]["inside"], t_in,
         TERMS[@lang]["setTemp"], data["S_81_85"])
@@ -203,7 +225,7 @@ module Oumancli
         exit 0
       end
       case ARGV[0]
-      when "set"
+      when "temp"
         if (ARGV[1]?) && (t = ARGV[1].to_f32?)
           setTemp(t)
           exit 0
@@ -222,37 +244,38 @@ module Oumancli
         puts "Server: " + getserverversion()
       when "full"
         self.print_pretty
+      when "valve"
+        s = nil unless (ARGV[2]? && (s = ARGV[2].to_i32?))
+
+        if ARGV[1]?
+          case ARGV[1]
+          when "manual"
+            setValve(CtlMode::Manual, s)
+          when "auto"
+            setValve(CtlMode::Auto, s) 
+          else
+            puts TERMS[@lang]["usage"]
+            exit 1
+          end
+        else
+          STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badmode"]
+          exit 1
+        end
+        
       else
         puts TERMS[@lang]["usage"]
       end
     end
 
     def login
-      time = Time.utc_now
-      begin
-        client = HTTP::Client.new(@oumanAddr, @oumanPort)
-        client.read_timeout = 5
-        response = client.get("/login?uid=" + @username + ";pwd=" + @password + ";" + time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
-      rescue Socket::Error
-        STDERR.puts TERMS[@lang]["noserver"] + "\n" + @oumanAddr
-        exit 1
-      rescue ex
-        STDERR.puts TERMS[@lang]["error"]
-        STDERR.puts ex
-        STDERR.puts response
-        exit 1
-      end
-      if response.is_a?(Nil)
-        exit 1
-      end
-      if (response.body.lines.size > 1) || (response.status_code != 200)
-        STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
+      response = operate("/login?uid=" + @username + ";pwd=" + @password + ";")
+      if !response
         exit 1
       end
       /login\?([^\x00]*);/.match(response.body.lines[0])
 
       res = {} of String => String
-      res["timestamp"] = time.to_s("%Y-%m-%d/%H:%M:%S%z")
+      res["timestamp"] = @time.to_s("%Y-%m-%d/%H:%M:%S%z")
 
       $1.split(";").each do |i|
         k, v = i.split("=")
@@ -266,37 +289,21 @@ module Oumancli
     end
 
     def setTemp(temp)
-      time = Time.utc_now
-      if temp < 10 || temp >= 30
+      if temp < 10 || temp >= 35
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badtemp"]
         exit 1
       end
-      t_str = sprintf("%.1f",temp) # floats and locales
-      begin
-        login
-        client = HTTP::Client.new(@oumanAddr, @oumanPort)
-        client.read_timeout = 5
-        response = client.get("/update?@_S_81_85=" + t_str + ";" + time.to_s("%a, %d %b %Y %H:%M:%S GMT").gsub(" ", "%20"))
-      rescue Socket::Error
-        STDERR.puts TERMS[@lang]["noserver"] + "\n" + @oumanAddr
-        exit 1
-      rescue ex
-        STDERR.puts TERMS[@lang]["error"]
-        STDERR.puts ex
-        STDERR.puts response
+      t_str = sprintf("%.1f", temp) # floats and locales
+      login()
+      response = operate("/update?@_S_81_85=" + t_str + ";")
+      if !response
         exit 1
       end
-      if response.is_a?(Nil)
-        exit 1
-      end
-      if (response.body.lines.size > 1) || (response.status_code != 200)
-        STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
-        exit 1
-      end
+
       /result\?([^\x00]*);/.match(response.body.lines[0])
 
       res = {} of String => String
-      res["timestamp"] = time.to_s("%Y-%m-%d %H:%M:%S%z")
+      res["timestamp"] = @time.to_s("%Y-%m-%d %H:%M:%S%z")
 
       $1.split(";").each do |i|
         k, v = i.split("=")
@@ -310,9 +317,27 @@ module Oumancli
       return res
     end
 
+    def setValve(mode : CtlMode, setting : (Int32 | Nil) = nil)
+      if !(mode.takesNumber? == !!setting)
+        STDERR.puts TERMS[@lang]["badmodecombo"]
+        exit 1
+      end
+      if mode.takesNumber? && setting
+        if setting < 1 || setting > 100
+          STDERR.puts TERMS[@lang]["badvalve"]
+          exit 1
+        end
+        login
+        operate("/update?S_59_85=#{mode.value};S_92_85=#{setting};")
+      else
+        login
+        operate("/update?S_59_85=#{mode.value};")
+      end
+    end
+
     def getserverversion
       begin
-        response = HTTP::Client.get "http://" + @oumanAddr + "/"
+        response = @oumanhttp.get("/")
       rescue Socket::Error
         STDERR.puts TERMS[@lang]["noserver"] + "\n" + @oumanAddr
         exit 1
@@ -321,7 +346,7 @@ module Oumancli
         puts response
         exit 1
       end
-      if response.is_a?(Nil) || response.status_code != 200 
+      if response.is_a?(Nil) || response.status_code != 200
         STDERR.puts TERMS[@lang]["error"] + ". " + TERMS[@lang]["badReply"]
         exit 1
       end
@@ -331,9 +356,12 @@ module Oumancli
     end
   end
 
-  Colorize.enabled = false unless STDOUT.tty?
-  STDIN.blocking = true if STDIN.class != IO
+  Colorize.enabled = STDOUT.tty?
+  STDIN.blocking = !(STDIN.class == IO)
   ouman = Ouman.new(ENV["HOME"] + "/.oumanrc")
   ouman.parseArgs
 end
 
+# staattisuusklunssi https://github.com/j8r/dockerfiles/tree/master/crystal-alpine
+# require "llvm/lib_llvm"
+# require "llvm/enums"

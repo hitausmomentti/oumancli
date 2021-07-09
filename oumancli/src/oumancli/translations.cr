@@ -1,6 +1,6 @@
 module Oumancli
-  CODES = {} of String => Hash(String, String)
-  CODES["fi"] = {
+  CODES = {
+    "fi" => {
     "timestamp" => "Aikaleima",
     "S_227_85"  => "Ulkolämpötila",
     "S_1000_0"  => "Lämpötaso",
@@ -30,24 +30,39 @@ module Oumancli
     "S_135_85"  => "Kotona/poissa-ohjaus",
     "S_222_85"  => "Kotona/poissa-ohjaus (tämä ja S_135_85 asetetaan)",
     "S_265_85"  => "Syyskuivauksen vaikutus",
-  }
-  CODES["en"] = {
+    "S_59_85"   => "Ohjaustapa",
+  },
+  "en" => {
     "timestamp" => "Timestamp",
     "S_227_85"  => "Outside temperature",
     "S_261_85"  => "Room temperature",
     "S_278_85"  => "Room temperature (as set)",
     "S_259_85"  => "L1 Outgoing water temperature",
     "S_275_85"  => "L1 Outgoing water temperature (as set)",
+    "S_59_85"   => "Valve operating mode",
+  }
+}
+
+  VALUES = {
+    "fi" => {"S_135_85" => {HomeAway::Disabled => "Ei K-P-ohjausta", 
+                            HomeAway::Home => "Kotona", 
+                            HomeAway::Away => "Poissa"},
+             "S_1000_0" => {"L1 Normaalilämpö(K-P ohjaus)" => "L1-Normaalilämpö (K-P-ohjaus)",
+                            "L1 Normaalilämpö" => "L1-Normaalilämpö"},
+             "S_59_85" => {CtlMode::Auto => "Automaattinen", 
+                           CtlMode::Manual => "Käsiajo",
+                           CtlMode::ForceTempDrop => "Pakko-ohjaus, lämmönpudotus",
+                           CtlMode::ForceTempDropBig => "Pakko-ohjaus, suuri lämmönpudotus",
+                           CtlMode::ForceNormTemp => "Pakko-ohjaus, norm. lämpötaso",
+                           CtlMode::Shutdown => "Alasajo"
+                          },
+    },
+    "en" => {"S_1000_0" => {"L1 Normaalilämpö(K-P ohjaus)" => "L1 Normal temperature (Home/Away)",
+                            "L1 Normaalilämpö" => "L1 Normal temperature"}},
   }
 
-  VALUES = {} of String => Hash(String, Hash(String, String))
-  VALUES["fi"] = {"S_135_85" => {"2" => "Ei K-P-ohjausta", "0" => "Kotona", "1" => "Poissa"},
-                  "S_1000_0" => {"L1 Normaalilämpö(K-P ohjaus)" => "L1-Normaalilämpö (K-P-ohjaus)", "L1 Normaalilämpö" => "L1-Normaalilämpö"},
-  }
-  VALUES["en"] = {"S_1000_0" => {"L1 Normaalilämpö(K-P ohjaus)" => "L1 Normal temperature (Home/Away)", "L1 Normaalilämpö" => "L1 Normal temperature"}}
-
-  TERMS = {} of String => Hash(String, String)
-  TERMS["fi"] = {
+  TERMS = {
+    "fi" => {
     "outside"       => "Ulkona",
     "inside"        => "Sisällä",
     "setTemp"       => "Pyyntö",
@@ -58,22 +73,25 @@ module Oumancli
     "exampleConfAt" => "Esimerkkiasetustiedosto ",
     "noserver"      => "Säätimeen ei saa yhteyttä",
     "badlogin"      => "Väärä käyttäjätunnus tai salasana",
-    "badtemp"       => "Lämpötilan pitää olla 10.0 - 29.9",
+    "badtemp"       => "Lämpötilan pitää olla 10.0 - 34.9",
+    "badmode"       => "Virheellinen ohjaustapa",
+    "badmodecombo"  => "Virheellinen ohjaustapayhdistelmä. manual <n> tai auto",
+    "badvalve"      => "Virheellinen venttiiliasetus. Väli 1-100",
+    "usage"         => <<-EOF,
+        ouman
 
-    "usage" => <<-EOF,
-                ouman
-
-                Komennot:
-                    set 21.0    aseta lämpötila
-                    json        tulosta JSONina
-                    full        tulosta selkokielisenä
-                    local-json  tulosta JSON selkokielisenä
-                    codemap     näytä koodien selitykset
-                    version     näytä versio
-                EOF
+        Komennot:
+            temp 21.0   aseta lämpötila
+            json        tulosta JSONina
+            full        tulosta selkokielisenä
+            local-json  tulosta JSON selkokielisenä
+            codemap     näytä koodien selitykset
+            version     näytä versio
+            valve <auto|manual 40> aseta venttiili
+        EOF
     "badconfig" => "Virheelliset asetukset",
-  }
-  TERMS["en"] = {
+  },
+  "en" => {
     "outside"       => "Outside",
     "inside"        => "Inside",
     "setTemp"       => "Set to",
@@ -85,17 +103,22 @@ module Oumancli
     "noserver"      => "Can't connect to the controller",
     "badlogin"      => "Bad username or password",
     "badconfig"     => "Bad configuration",
-    "badtemp"       => "Temperature must be between 10.0 - 29.9",
+    "badtemp"       => "Temperature must be between 10.0 - 34.9",
+    "badmode"       => "Bad mode",
+    "badmodecombo"  => "Bad mode setting combination",
+    "badvalve"      => "Bad valve setting",
     "usage"         => <<-EOF
       ouman
 
       Commands:
-       set 21.0    set the temperature
+       temp 21.0   set the temperature
        json        print JSON
        full        print human-readable data
        local-json  print JSON with human-readable data
        codemap     show code meanings
        version     print version
+       valve <auto|manual 40> set valve auto/manual
       EOF
   }
+}
 end
